@@ -28,7 +28,7 @@ export default function Login({ onLogin }: LoginProps) {
     // ในการใช้งานจริง คุณสามารถเปลี่ยนเป็นการใช้ fetch() 
     // เพื่อส่ง username/password ไปตรวจสอบกับ Google Apps Script หรือ API ของคุณได้
     setTimeout(() => {
-      if (username === 'admin' && password === '1234') {
+      if (username === 'TesterSB' && password === 'Sb1-user') {
         onLogin(true);
       } else {
         setError('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
