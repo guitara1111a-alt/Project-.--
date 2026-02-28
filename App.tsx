@@ -74,13 +74,22 @@ export default function App() {
         const response = await fetch(`${GAS_URL}?plate=${encodeURIComponent(plate)}`);
         if (!response.ok) throw new Error('เกิดข้อผิดพลาดในการเชื่อมต่อ API');
         
-        const data = await response.json();
-        setResult(data);
+        const apiResult = await response.json();
         
-        if (data.found) {
+        // แปลงข้อมูลจาก GAS ให้ตรงกับรูปแบบที่แอปหน้าเว็บเข้าใจ
+        const formattedData = {
+          found: apiResult.status === 'success',
+          lat: apiResult.data ? parseFloat(apiResult.data.lat) : undefined,
+          lng: apiResult.data ? parseFloat(apiResult.data.lon) : undefined, // แปลง lon เป็น lng
+          message: apiResult.message
+        };
+        
+        setResult(formattedData);
+        
+        if (formattedData.found) {
           setShowPopup(true); // แสดง Popup แจ้งเตือนเมื่อเจอข้อมูล
-          if (data.lat && data.lng) {
-            initMap(data.lat, data.lng);
+          if (formattedData.lat && formattedData.lng) {
+            initMap(formattedData.lat, formattedData.lng);
           }
         }
       }
