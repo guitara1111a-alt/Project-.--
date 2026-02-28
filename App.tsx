@@ -15,6 +15,7 @@ export default function App() {
   const [result, setResult] = useState<{ found: boolean; lat?: number; lng?: number; message?: string } | null>(null);
   const [error, setError] = useState('');
   const [showPopup, setShowPopup] = useState(false);
+  const [isMapLoaded, setIsMapLoaded] = useState(false);
   
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -28,6 +29,11 @@ export default function App() {
       return;
     }
 
+    if (typeof window !== 'undefined' && (window as any).sphere) {
+      setIsMapLoaded(true);
+      return;
+    }
+
     const scriptId = 'sphere-map-script';
     if (!document.getElementById(scriptId)) {
       const script = document.createElement('script');
@@ -36,6 +42,7 @@ export default function App() {
       script.async = true;
       script.onload = () => {
         console.log('Sphere Map Script Loaded');
+        setIsMapLoaded(true);
       };
       document.head.appendChild(script);
     }
@@ -43,10 +50,10 @@ export default function App() {
 
   // 2. useEffect สำหรับสร้างแผนที่ "หลังจาก" ที่หน้าจอวาดกล่องผลลัพธ์เสร็จแล้ว
   useEffect(() => {
-    if (result && result.found && result.lat !== undefined && result.lng !== undefined) {
+    if (isMapLoaded && result && result.found && result.lat !== undefined && result.lng !== undefined) {
       initMap(result.lat, result.lng);
     }
-  }, [result]);
+  }, [result, isMapLoaded]);
 
   const handleCheck = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,8 +130,9 @@ export default function App() {
 
           // ต้องรอให้แผนที่ Ready ก่อนถึงจะสั่ง location, zoom และปักหมุดได้
           map.Event.bind((window as any).sphere.EventName.Ready, () => {
-            // ใช้ map.goTo() หรือ map.location() ตาม document
-            map.goTo({ center: { lon: lng, lat: lat }, zoom: 14 });
+            // ใช้ map.location() และ map.zoom() ตามที่เคยใช้งานได้
+            map.location({ lon: lng, lat: lat });
+            map.zoom(14);
 
             // สร้าง Marker ปักหมุด
             const marker = new (window as any).sphere.Marker(
@@ -132,7 +140,7 @@ export default function App() {
               { title: 'จุดที่พบยานพาหนะ', detail: `พิกัด: ${lat}, ${lng}` }
             );
             
-            // เพิ่มหมุดลงในแผนที่ด้วย Overlays.add หรือ map.add()
+            // เพิ่มหมุดลงในแผนที่ด้วย Overlays.add
             map.Overlays.add(marker);
           });
 
@@ -140,7 +148,7 @@ export default function App() {
         } else {
           console.error("หาพื้นที่แสดงแผนที่ไม่พบ (mapRef is null)");
         }
-      }, 500); // เพิ่มเวลาหน่วงเป็น 500ms เพื่อให้แน่ใจว่า DOM วาดเสร็จและ popup หายไปแล้ว
+      }, 100); // ลดเวลาหน่วงลงเพราะเรามี isMapLoaded ช่วยตรวจสอบแล้ว
     } else {
       console.warn('Sphere map library is not loaded yet.');
     }
@@ -261,7 +269,9 @@ export default function App() {
                     </div>
                     
                     {/* พื้นที่สำหรับวาดแผนที่ (แยกออกมาต่างหากเพื่อไม่ให้ React ชนกับ Sphere Map) */}
-                    <div ref={mapRef} className="absolute inset-0 z-10"></div>
+                    <div className="absolute inset-0 z-10">
+                      <div id="sphere-map-container" ref={mapRef} style={{ width: '100%', height: '100%' }}></div>
+                    </div>
                   </div>
                 </div>
               </div>
