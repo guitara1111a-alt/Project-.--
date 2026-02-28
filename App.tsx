@@ -17,7 +17,7 @@ export default function App() {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
 
-  // โหลด Script ของ Sphere Map เมื่อ Component ถูก Mount
+  // 1. โหลด Script ของ Sphere Map เมื่อเข้าเว็บครั้งแรก
   useEffect(() => {
     if (SPHERE_API_KEY === 'ใส่ API Key ที่นี่') {
       console.warn('กรุณาใส่ SPHERE_API_KEY เพื่อใช้งานแผนที่');
@@ -37,6 +37,13 @@ export default function App() {
     }
   }, []);
 
+  // 2. useEffect สำหรับสร้างแผนที่ "หลังจาก" ที่หน้าจอวาดกล่องผลลัพธ์เสร็จแล้ว
+  useEffect(() => {
+    if (result && result.found && result.lat !== undefined && result.lng !== undefined) {
+      initMap(result.lat, result.lng);
+    }
+  }, [result]);
+
   const handleCheck = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!plate.trim()) {
@@ -50,22 +57,19 @@ export default function App() {
     setShowPopup(false);
 
     try {
-      // จำลองการเรียก API ในกรณีที่ยังไม่ได้ใส่ URL จริง
       if (GAS_URL === 'ใส่ URL ของคุณที่นี่') {
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Mock delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // จำลองข้อมูลตอบกลับ (สุ่มเจอหรือไม่เจอ)
         const isFound = Math.random() > 0.5;
         if (isFound) {
           const mockData = {
             found: true,
-            lat: 13.7563, // พิกัดตัวอย่าง (กรุงเทพฯ)
+            lat: 13.7563, 
             lng: 100.5018,
             message: 'เคยผ่านด่าน A'
           };
           setResult(mockData);
-          setShowPopup(true); // แสดง Popup แจ้งเตือน
-          initMap(mockData.lat, mockData.lng);
+          setShowPopup(true);
         } else {
           setResult({ found: false, message: 'ไม่พบประวัติการผ่านด่าน A' });
         }
@@ -80,17 +84,15 @@ export default function App() {
         const formattedData = {
           found: apiResult.status === 'success',
           lat: apiResult.data ? parseFloat(apiResult.data.lat) : undefined,
-          lng: apiResult.data ? parseFloat(apiResult.data.lon) : undefined, // แปลง lon เป็น lng
+          lng: apiResult.data ? parseFloat(apiResult.data.lon) : undefined, 
           message: apiResult.message
         };
         
         setResult(formattedData);
         
         if (formattedData.found) {
-          setShowPopup(true); // แสดง Popup แจ้งเตือนเมื่อเจอข้อมูล
-          if (formattedData.lat && formattedData.lng) {
-            initMap(formattedData.lat, formattedData.lng);
-          }
+          setShowPopup(true); 
+          // เราลบ initMap() ออกจากตรงนี้ แล้วให้ useEffect ตัวที่ 2 ทำงานแทน เพื่อป้องกันปัญหา DOM ไม่พร้อม
         }
       }
     } catch (err: any) {
@@ -102,8 +104,8 @@ export default function App() {
 
   // ฟังก์ชันสำหรับสร้างและแสดงแผนที่
   const initMap = (lat: number, lng: number) => {
-    // ตรวจสอบว่ามีไลบรารี sphere โหลดมาหรือยัง
     if (typeof window !== 'undefined' && (window as any).sphere) {
+      // ใช้ setTimeout เพื่อหน่วงเวลาให้ HTML Render กล่องแผนที่เสร็จสมบูรณ์ 100%
       setTimeout(() => {
         if (mapRef.current) {
           // ล้างแผนที่เก่าถ้ามี
@@ -123,8 +125,10 @@ export default function App() {
           }).addTo(map);
 
           mapInstanceRef.current = map;
+        } else {
+          console.error("หาพื้นที่แสดงแผนที่ไม่พบ (mapRef is null)");
         }
-      }, 100); // รอให้ DOM render เสร็จ
+      }, 300); // เพิ่มเวลาหน่วงเล็กน้อยเป็น 300ms เพื่อความชัวร์
     } else {
       console.warn('Sphere map library is not loaded yet.');
     }
@@ -158,7 +162,7 @@ export default function App() {
                   id="plate"
                   value={plate}
                   onChange={(e) => setPlate(e.target.value)}
-                  placeholder="เช่น กท 1234"
+                  placeholder="เช่น กข1234"
                   className="w-full pl-4 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all font-medium text-lg"
                 />
                 <div className="absolute right-3 top-3.5 w-8 h-8 bg-slate-200 rounded-lg flex items-center justify-center">
@@ -222,7 +226,7 @@ export default function App() {
                         <div className="w-12 h-12 bg-slate-200 rounded-full flex items-center justify-center mb-3">
                           <MapPin className="w-6 h-6 text-slate-400" />
                         </div>
-                        <p className="font-medium text-slate-600">กรุณาใส่ SPHERE_API_KEY ในโค้ด<br/>เพื่อแสดงแผนที่ GISTDA</p>
+                        <p className="font-medium text-slate-600">กำลังโหลดแผนที่...</p>
                       </div>
                     )}
                   </div>
