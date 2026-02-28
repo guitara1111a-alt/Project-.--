@@ -1,0 +1,5 @@
+{
+  "name": "Vehicle Checkpoint Tracker",
+  "description": "A modern SPA for checking vehicle license plates and displaying locations on GISTDA Sphere Map.",
+  "requestFramePermissions": []
+}
