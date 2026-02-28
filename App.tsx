@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, AlertCircle, MapPin, CheckCircle, Car, LogOut, Sun, Moon } from 'lucide-react';
+import { Search, AlertCircle, MapPin, CheckCircle, Car, LogOut, Sun, Moon, X } from 'lucide-react';
 import Login from './components/Login';
 
 // ==========================================
@@ -401,25 +401,52 @@ export default function App() {
 
       {/* Popup Alert Modal */}
       {showPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full shadow-2xl border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-center w-20 h-20 rounded-full bg-red-50 dark:bg-red-900/20 mx-auto mb-6 border-8 border-red-50/50 dark:border-red-900/10">
-              <AlertCircle className="w-10 h-10 text-red-600 dark:text-red-500" />
-            </div>
-            <h3 className="text-2xl font-bold text-center text-slate-900 dark:text-white mb-3">แจ้งเตือนยานพาหนะ!</h3>
-            <div className="text-center text-slate-600 dark:text-slate-400 mb-8 space-y-2">
-              <p>ตรวจพบรถทะเบียน</p>
-              <div className="inline-block px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg font-mono font-bold text-lg text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700">
-                {`${platePrefix.replace(/[\s-]/g, '')} ${plateNumber.replace(/[\s-]/g, '')} ${plateProvince}`}
-              </div>
-              <p className="font-medium text-red-600 dark:text-red-400 mt-2">{result?.message || 'เคยผ่านด่าน A'}</p>
-            </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-sm shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 relative">
+            
+            {/* Close Button */}
             <button 
               onClick={() => setShowPopup(false)}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white font-bold py-4 rounded-xl transition-all shadow-md hover:shadow-lg active:scale-[0.98]"
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors z-10"
             >
-              รับทราบ
+              <X className="w-5 h-5" />
             </button>
+
+            {/* Header Background */}
+            <div className="h-32 bg-gradient-to-br from-red-500 to-red-600 dark:from-red-900/80 dark:to-red-950 relative overflow-hidden">
+              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
+              <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-20 h-20 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center p-1.5">
+                <div className="w-full h-full rounded-full bg-red-50 dark:bg-red-900/30 flex items-center justify-center relative">
+                  <div className="absolute inset-0 rounded-full border-4 border-red-100 dark:border-red-900/50 animate-ping opacity-20"></div>
+                  <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-500 relative z-10" />
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="pt-14 pb-8 px-8">
+              <h3 className="text-2xl font-bold text-center text-slate-900 dark:text-white mb-2 tracking-tight">แจ้งเตือนยานพาหนะ!</h3>
+              <p className="text-center text-slate-500 dark:text-slate-400 text-sm mb-6">ระบบตรวจพบประวัติการเดินทางที่ต้องสงสัย</p>
+              
+              <div className="bg-slate-50 dark:bg-slate-950/50 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 mb-8">
+                <div className="text-center space-y-3">
+                  <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">ทะเบียนรถที่ตรวจพบ</p>
+                  <div className="inline-block px-4 py-2 bg-white dark:bg-slate-800 rounded-xl font-mono font-bold text-xl text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 shadow-sm">
+                    {`${platePrefix.replace(/[\s-]/g, '')} ${plateNumber.replace(/[\s-]/g, '')} ${plateProvince}`}
+                  </div>
+                  <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-800">
+                    <p className="font-medium text-red-600 dark:text-red-400 text-sm">{result?.message || 'เคยผ่านด่าน A'}</p>
+                  </div>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setShowPopup(false)}
+                className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white font-semibold py-4 rounded-xl transition-all shadow-md hover:shadow-lg active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                <span>รับทราบข้อมูล</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
