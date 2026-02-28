@@ -116,15 +116,15 @@ export default function App() {
           // ล้างแผนที่เก่าถ้ามี
           mapRef.current.innerHTML = '';
           
-          // สร้างแผนที่ใหม่ตาม Document
+          // สร้างแผนที่ใหม่ตาม Document (ต้องส่ง DOM element เข้าไปใน placeholder)
           const map = new (window as any).sphere.Map({
             placeholder: mapRef.current
           });
 
           // ต้องรอให้แผนที่ Ready ก่อนถึงจะสั่ง location, zoom และปักหมุดได้
           map.Event.bind((window as any).sphere.EventName.Ready, () => {
-            map.location({ lon: lng, lat: lat });
-            map.zoom(14);
+            // ใช้ map.goTo() หรือ map.location() ตาม document
+            map.goTo({ center: { lon: lng, lat: lat }, zoom: 14 });
 
             // สร้าง Marker ปักหมุด
             const marker = new (window as any).sphere.Marker(
@@ -132,7 +132,7 @@ export default function App() {
               { title: 'จุดที่พบยานพาหนะ', detail: `พิกัด: ${lat}, ${lng}` }
             );
             
-            // เพิ่มหมุดลงในแผนที่ด้วย Overlays.add
+            // เพิ่มหมุดลงในแผนที่ด้วย Overlays.add หรือ map.add()
             map.Overlays.add(marker);
           });
 
@@ -140,7 +140,7 @@ export default function App() {
         } else {
           console.error("หาพื้นที่แสดงแผนที่ไม่พบ (mapRef is null)");
         }
-      }, 300); // เพิ่มเวลาหน่วงเล็กน้อยเป็น 300ms เพื่อความชัวร์
+      }, 500); // เพิ่มเวลาหน่วงเป็น 500ms เพื่อให้แน่ใจว่า DOM วาดเสร็จและ popup หายไปแล้ว
     } else {
       console.warn('Sphere map library is not loaded yet.');
     }
