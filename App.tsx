@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, AlertCircle, MapPin, CheckCircle, Car, LogOut } from 'lucide-react';
+import { Search, AlertCircle, MapPin, CheckCircle, Car, LogOut, Sun, Moon } from 'lucide-react';
 import Login from './components/Login';
 
 // ==========================================
@@ -28,9 +28,25 @@ export default function App() {
   const [error, setError] = useState('');
   const [showPopup, setShowPopup] = useState(false);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
+
+  // 0. จัดการ Theme (Light/Dark Mode)
+  useEffect(() => {
+    // เช็คค่าเริ่มต้นจากระบบของผู้ใช้
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setIsDarkMode(prefersDark);
+  }, []);
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
 
   // 1. โหลด Script ของ Sphere Map เมื่อ Component ถูก Mount (และต้อง Login แล้ว)
   useEffect(() => {
@@ -225,19 +241,28 @@ export default function App() {
 
   // หาก Login แล้ว ให้แสดงหน้าหลัก
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-800 flex items-center justify-center animate-in fade-in duration-300">
-      <div className="max-w-md w-full mx-auto bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden relative">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 md:p-8 font-sans text-slate-800 dark:text-slate-200 flex items-center justify-center animate-in fade-in duration-300 transition-colors">
+      <div className="max-w-md w-full mx-auto bg-white dark:bg-slate-900 rounded-2xl shadow-xl dark:shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden relative">
         
         {/* Header */}
-        <div className="bg-slate-900 p-8 text-white text-center relative overflow-hidden">
-          <button 
-            onClick={handleLogout}
-            className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-lg backdrop-blur-sm transition-colors text-slate-300 hover:text-white flex items-center gap-2 text-sm font-medium z-20"
-            title="ออกจากระบบ"
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">ออก</span>
-          </button>
+        <div className="bg-slate-900 dark:bg-slate-950 p-8 text-white text-center relative overflow-hidden border-b border-slate-800">
+          <div className="absolute top-4 right-4 flex items-center gap-2 z-20">
+            <button 
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="p-2 bg-white/10 hover:bg-white/20 rounded-lg backdrop-blur-sm transition-colors text-slate-300 hover:text-white flex items-center justify-center"
+              title={isDarkMode ? "เปลี่ยนเป็นโหมดสว่าง" : "เปลี่ยนเป็นโหมดมืด"}
+            >
+              {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+            <button 
+              onClick={handleLogout}
+              className="p-2 bg-white/10 hover:bg-white/20 rounded-lg backdrop-blur-sm transition-colors text-slate-300 hover:text-white flex items-center gap-2 text-sm font-medium"
+              title="ออกจากระบบ"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">ออก</span>
+            </button>
+          </div>
           
           <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white to-transparent"></div>
           <div className="relative z-10 flex flex-col items-center mt-2">
@@ -254,7 +279,7 @@ export default function App() {
           <form onSubmit={handleCheck} className="space-y-5">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="platePrefix" className="block text-sm font-semibold text-slate-700 mb-2 uppercase tracking-wide">
+                <label htmlFor="platePrefix" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wide">
                   หมวดอักษร
                 </label>
                 <input
@@ -263,11 +288,11 @@ export default function App() {
                   value={platePrefix}
                   onChange={(e) => setPlatePrefix(e.target.value)}
                   placeholder="เช่น 1กท, กข"
-                  className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all font-medium text-lg text-center"
+                  className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all font-medium text-lg text-center text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
                 />
               </div>
               <div>
-                <label htmlFor="plateNumber" className="block text-sm font-semibold text-slate-700 mb-2 uppercase tracking-wide">
+                <label htmlFor="plateNumber" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wide">
                   หมายเลข
                 </label>
                 <input
@@ -277,20 +302,20 @@ export default function App() {
                   onChange={(e) => setPlateNumber(e.target.value)}
                   placeholder="เช่น 1234"
                   maxLength={4}
-                  className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all font-medium text-lg text-center"
+                  className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all font-medium text-lg text-center text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="plateProvince" className="block text-sm font-semibold text-slate-700 mb-2 uppercase tracking-wide">
+              <label htmlFor="plateProvince" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wide">
                 จังหวัด
               </label>
               <select
                 id="plateProvince"
                 value={plateProvince}
                 onChange={(e) => setPlateProvince(e.target.value)}
-                className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all font-medium text-lg"
+                className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all font-medium text-lg text-slate-900 dark:text-white"
               >
                 {PROVINCES.map(province => (
                   <option key={province} value={province}>{province}</option>
@@ -299,7 +324,7 @@ export default function App() {
             </div>
 
             {error && (
-              <div className="flex items-center gap-3 text-red-600 text-sm bg-red-50 p-4 rounded-xl border border-red-100">
+              <div className="flex items-center gap-3 text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/20 p-4 rounded-xl border border-red-100 dark:border-red-900/30">
                 <AlertCircle className="w-5 h-5 shrink-0" />
                 <span className="font-medium">{error}</span>
               </div>
@@ -308,7 +333,7 @@ export default function App() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-4 rounded-xl transition-all disabled:opacity-70 flex justify-center items-center gap-2 shadow-sm hover:shadow-md"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white font-semibold py-4 rounded-xl transition-all disabled:opacity-70 flex justify-center items-center gap-2 shadow-md hover:shadow-lg"
             >
               {loading ? (
                 <>
@@ -324,32 +349,32 @@ export default function App() {
 
         {/* Results */}
         {result && (
-          <div className="border-t border-slate-100 bg-slate-50/50 p-6 md:p-8">
+          <div className="border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 p-6 md:p-8">
             {result.found ? (
               <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="flex items-start gap-4 bg-red-50 border border-red-200 p-5 rounded-2xl text-red-800 shadow-sm">
-                  <div className="bg-red-100 p-2 rounded-full shrink-0">
-                    <AlertCircle className="w-6 h-6 text-red-600" />
+                <div className="flex items-start gap-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/30 p-5 rounded-2xl text-red-800 dark:text-red-300 shadow-sm">
+                  <div className="bg-red-100 dark:bg-red-900/50 p-2 rounded-full shrink-0">
+                    <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
                   </div>
                   <div>
                     <h3 className="font-bold text-lg">แจ้งเตือน! พบข้อมูล</h3>
-                    <p className="text-sm mt-1 text-red-700/80 font-medium">{result.message || 'เคยผ่านด่าน A'}</p>
+                    <p className="text-sm mt-1 text-red-700/80 dark:text-red-300/80 font-medium">{result.message || 'เคยผ่านด่าน A'}</p>
                   </div>
                 </div>
 
                 {/* Map Container */}
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm font-bold text-slate-700 uppercase tracking-wide">
-                    <MapPin className="w-4 h-4 text-slate-400" />
+                  <div className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+                    <MapPin className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                     <span>ตำแหน่งที่พบ (Sphere Map)</span>
                   </div>
-                  <div className="w-full h-64 bg-slate-200 rounded-2xl border border-slate-300 overflow-hidden relative shadow-inner">
+                  <div className="w-full h-64 bg-slate-200 dark:bg-slate-800 rounded-2xl border border-slate-300 dark:border-slate-700 overflow-hidden relative shadow-inner">
                     {/* Placeholder (อยู่ด้านหลังแผนที่เสมอ) */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 text-sm p-6 text-center bg-slate-100 z-0">
-                      <div className="w-12 h-12 bg-slate-200 rounded-full flex items-center justify-center mb-3">
-                        <MapPin className="w-6 h-6 text-slate-400" />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 text-sm p-6 text-center bg-slate-100 dark:bg-slate-800 z-0">
+                      <div className="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center mb-3">
+                        <MapPin className="w-6 h-6 text-slate-400 dark:text-slate-500" />
                       </div>
-                      <p className="font-medium text-slate-600">กำลังโหลดแผนที่...</p>
+                      <p className="font-medium text-slate-600 dark:text-slate-300">กำลังโหลดแผนที่...</p>
                     </div>
                     
                     {/* พื้นที่สำหรับวาดแผนที่ (แยกออกมาต่างหากเพื่อไม่ให้ React ชนกับ Sphere Map) */}
@@ -360,13 +385,13 @@ export default function App() {
                 </div>
               </div>
             ) : (
-              <div className="flex items-start gap-4 bg-emerald-50 border border-emerald-200 p-5 rounded-2xl text-emerald-800 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="bg-emerald-100 p-2 rounded-full shrink-0">
-                  <CheckCircle className="w-6 h-6 text-emerald-600" />
+              <div className="flex items-start gap-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-900/30 p-5 rounded-2xl text-emerald-800 dark:text-emerald-300 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="bg-emerald-100 dark:bg-emerald-900/50 p-2 rounded-full shrink-0">
+                  <CheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <div>
                   <h3 className="font-bold text-lg">ปลอดภัย</h3>
-                  <p className="text-sm mt-1 text-emerald-700/80 font-medium">{result.message || 'ไม่พบประวัติการผ่านด่าน A'}</p>
+                  <p className="text-sm mt-1 text-emerald-700/80 dark:text-emerald-300/80 font-medium">{result.message || 'ไม่พบประวัติการผ่านด่าน A'}</p>
                 </div>
               </div>
             )}
@@ -376,22 +401,22 @@ export default function App() {
 
       {/* Popup Alert Modal */}
       {showPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-center w-20 h-20 rounded-full bg-red-50 mx-auto mb-6 border-8 border-red-50/50">
-              <AlertCircle className="w-10 h-10 text-red-600" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full shadow-2xl border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-center w-20 h-20 rounded-full bg-red-50 dark:bg-red-900/20 mx-auto mb-6 border-8 border-red-50/50 dark:border-red-900/10">
+              <AlertCircle className="w-10 h-10 text-red-600 dark:text-red-500" />
             </div>
-            <h3 className="text-2xl font-bold text-center text-slate-900 mb-3">แจ้งเตือนยานพาหนะ!</h3>
-            <div className="text-center text-slate-600 mb-8 space-y-2">
+            <h3 className="text-2xl font-bold text-center text-slate-900 dark:text-white mb-3">แจ้งเตือนยานพาหนะ!</h3>
+            <div className="text-center text-slate-600 dark:text-slate-400 mb-8 space-y-2">
               <p>ตรวจพบรถทะเบียน</p>
-              <div className="inline-block px-4 py-2 bg-slate-100 rounded-lg font-mono font-bold text-lg text-slate-900 border border-slate-200">
+              <div className="inline-block px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg font-mono font-bold text-lg text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700">
                 {`${platePrefix.replace(/[\s-]/g, '')} ${plateNumber.replace(/[\s-]/g, '')} ${plateProvince}`}
               </div>
-              <p className="font-medium text-red-600 mt-2">{result?.message || 'เคยผ่านด่าน A'}</p>
+              <p className="font-medium text-red-600 dark:text-red-400 mt-2">{result?.message || 'เคยผ่านด่าน A'}</p>
             </div>
             <button 
               onClick={() => setShowPopup(false)}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl transition-all shadow-md hover:shadow-lg active:scale-[0.98]"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white font-bold py-4 rounded-xl transition-all shadow-md hover:shadow-lg active:scale-[0.98]"
             >
               รับทราบ
             </button>
