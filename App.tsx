@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, AlertCircle, MapPin, CheckCircle, Car } from 'lucide-react';
+import { Search, AlertCircle, MapPin, CheckCircle, Car, LogOut } from 'lucide-react';
+import Login from './components/Login';
 
 // ==========================================
 // การตั้งค่า (Configuration)
@@ -8,6 +9,7 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwd0Wt66cnmx2L0R6Qh7frL
 const SPHERE_API_KEY = 'EDB31CA9C8A944F59D3021B1F0B565C0'; // API Key สำหรับ Sphere Map (GISTDA)
 
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [plate, setPlate] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ found: boolean; lat?: number; lng?: number; message?: string } | null>(null);
@@ -17,8 +19,10 @@ export default function App() {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
 
-  // 1. โหลด Script ของ Sphere Map เมื่อเข้าเว็บครั้งแรก
+  // โหลด Script ของ Sphere Map เมื่อ Component ถูก Mount (และต้อง Login แล้ว)
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     if (SPHERE_API_KEY === 'ใส่ API Key ที่นี่') {
       console.warn('กรุณาใส่ SPHERE_API_KEY เพื่อใช้งานแผนที่');
       return;
@@ -35,14 +39,7 @@ export default function App() {
       };
       document.head.appendChild(script);
     }
-  }, []);
-
-  // 2. useEffect สำหรับสร้างแผนที่ "หลังจาก" ที่หน้าจอวาดกล่องผลลัพธ์เสร็จแล้ว
-  useEffect(() => {
-    if (result && result.found && result.lat !== undefined && result.lng !== undefined) {
-      initMap(result.lat, result.lng);
-    }
-  }, [result]);
+  }, [isAuthenticated]);
 
   const handleCheck = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,19 +54,22 @@ export default function App() {
     setShowPopup(false);
 
     try {
+      // จำลองการเรียก API ในกรณีที่ยังไม่ได้ใส่ URL จริง
       if (GAS_URL === 'ใส่ URL ของคุณที่นี่') {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Mock delay
         
+        // จำลองข้อมูลตอบกลับ (สุ่มเจอหรือไม่เจอ)
         const isFound = Math.random() > 0.5;
         if (isFound) {
           const mockData = {
             found: true,
-            lat: 13.7563, 
+            lat: 13.7563, // พิกัดตัวอย่าง (กรุงเทพฯ)
             lng: 100.5018,
             message: 'เคยผ่านด่าน A'
           };
           setResult(mockData);
-          setShowPopup(true);
+          setShowPopup(true); // แสดง Popup แจ้งเตือน
+          initMap(mockData.lat, mockData.lng);
         } else {
           setResult({ found: false, message: 'ไม่พบประวัติการผ่านด่าน A' });
         }
@@ -78,21 +78,14 @@ export default function App() {
         const response = await fetch(`${GAS_URL}?plate=${encodeURIComponent(plate)}`);
         if (!response.ok) throw new Error('เกิดข้อผิดพลาดในการเชื่อมต่อ API');
         
-        const apiResult = await response.json();
+        const data = await response.json();
+        setResult(data);
         
-        // แปลงข้อมูลจาก GAS ให้ตรงกับรูปแบบที่แอปหน้าเว็บเข้าใจ
-        const formattedData = {
-          found: apiResult.status === 'success',
-          lat: apiResult.data ? parseFloat(apiResult.data.lat) : undefined,
-          lng: apiResult.data ? parseFloat(apiResult.data.lon) : undefined, 
-          message: apiResult.message
-        };
-        
-        setResult(formattedData);
-        
-        if (formattedData.found) {
-          setShowPopup(true); 
-          // เราลบ initMap() ออกจากตรงนี้ แล้วให้ useEffect ตัวที่ 2 ทำงานแทน เพื่อป้องกันปัญหา DOM ไม่พร้อม
+        if (data.found) {
+          setShowPopup(true); // แสดง Popup แจ้งเตือนเมื่อเจอข้อมูล
+          if (data.lat && data.lng) {
+            initMap(data.lat, data.lng);
+          }
         }
       }
     } catch (err: any) {
@@ -104,8 +97,8 @@ export default function App() {
 
   // ฟังก์ชันสำหรับสร้างและแสดงแผนที่
   const initMap = (lat: number, lng: number) => {
+    // ตรวจสอบว่ามีไลบรารี sphere โหลดมาหรือยัง
     if (typeof window !== 'undefined' && (window as any).sphere) {
-      // ใช้ setTimeout เพื่อหน่วงเวลาให้ HTML Render กล่องแผนที่เสร็จสมบูรณ์ 100%
       setTimeout(() => {
         if (mapRef.current) {
           // ล้างแผนที่เก่าถ้ามี
@@ -125,22 +118,43 @@ export default function App() {
           }).addTo(map);
 
           mapInstanceRef.current = map;
-        } else {
-          console.error("หาพื้นที่แสดงแผนที่ไม่พบ (mapRef is null)");
         }
-      }, 300); // เพิ่มเวลาหน่วงเล็กน้อยเป็น 300ms เพื่อความชัวร์
+      }, 100); // รอให้ DOM render เสร็จ
     } else {
       console.warn('Sphere map library is not loaded yet.');
     }
   };
 
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setPlate('');
+    setResult(null);
+    setError('');
+  };
+
+  // หากยังไม่ได้ Login ให้แสดงหน้า Login
+  if (!isAuthenticated) {
+    return <Login onLogin={setIsAuthenticated} />;
+  }
+
+  // หาก Login แล้ว ให้แสดงหน้าหลัก
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-800 flex items-center justify-center">
-      <div className="max-w-md w-full mx-auto bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-800 flex items-center justify-center animate-in fade-in duration-300">
+      <div className="max-w-md w-full mx-auto bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden relative">
+        
         {/* Header */}
         <div className="bg-slate-900 p-8 text-white text-center relative overflow-hidden">
+          <button 
+            onClick={handleLogout}
+            className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-lg backdrop-blur-sm transition-colors text-slate-300 hover:text-white flex items-center gap-2 text-sm font-medium z-20"
+            title="ออกจากระบบ"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline">ออก</span>
+          </button>
+          
           <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white to-transparent"></div>
-          <div className="relative z-10 flex flex-col items-center">
+          <div className="relative z-10 flex flex-col items-center mt-2">
             <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center mb-4 backdrop-blur-sm border border-white/20">
               <Car className="w-7 h-7 text-white" />
             </div>
@@ -162,7 +176,7 @@ export default function App() {
                   id="plate"
                   value={plate}
                   onChange={(e) => setPlate(e.target.value)}
-                  placeholder="เช่น กข1234"
+                  placeholder="เช่น กท 1234"
                   className="w-full pl-4 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all font-medium text-lg"
                 />
                 <div className="absolute right-3 top-3.5 w-8 h-8 bg-slate-200 rounded-lg flex items-center justify-center">
@@ -226,7 +240,7 @@ export default function App() {
                         <div className="w-12 h-12 bg-slate-200 rounded-full flex items-center justify-center mb-3">
                           <MapPin className="w-6 h-6 text-slate-400" />
                         </div>
-                        <p className="font-medium text-slate-600">กำลังโหลดแผนที่...</p>
+                        <p className="font-medium text-slate-600">กรุณาใส่ SPHERE_API_KEY ในโค้ด<br/>เพื่อแสดงแผนที่ GISTDA</p>
                       </div>
                     )}
                   </div>
