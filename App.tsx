@@ -251,19 +251,17 @@ export default function App() {
                     <MapPin className="w-4 h-4 text-slate-400" />
                     <span>ตำแหน่งที่พบ (Sphere Map)</span>
                   </div>
-                  <div 
-                    ref={mapRef} 
-                    className="w-full h-64 bg-slate-200 rounded-2xl border border-slate-300 overflow-hidden relative shadow-inner"
-                  >
-                    {/* Placeholder when map is not loaded */}
-                    {(!mapInstanceRef.current) && (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 text-sm p-6 text-center bg-slate-100">
-                        <div className="w-12 h-12 bg-slate-200 rounded-full flex items-center justify-center mb-3">
-                          <MapPin className="w-6 h-6 text-slate-400" />
-                        </div>
-                        <p className="font-medium text-slate-600">กำลังโหลดแผนที่...</p>
+                  <div className="w-full h-64 bg-slate-200 rounded-2xl border border-slate-300 overflow-hidden relative shadow-inner">
+                    {/* Placeholder (อยู่ด้านหลังแผนที่เสมอ) */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 text-sm p-6 text-center bg-slate-100 z-0">
+                      <div className="w-12 h-12 bg-slate-200 rounded-full flex items-center justify-center mb-3">
+                        <MapPin className="w-6 h-6 text-slate-400" />
                       </div>
-                    )}
+                      <p className="font-medium text-slate-600">กำลังโหลดแผนที่...</p>
+                    </div>
+                    
+                    {/* พื้นที่สำหรับวาดแผนที่ (แยกออกมาต่างหากเพื่อไม่ให้ React ชนกับ Sphere Map) */}
+                    <div ref={mapRef} className="absolute inset-0 z-10"></div>
                   </div>
                 </div>
               </div>
