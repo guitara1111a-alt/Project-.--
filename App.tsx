@@ -154,6 +154,9 @@ export default function App() {
         if (formattedData.found) {
           setShowPopup(true); 
           // เราลบ initMap() ออกจากตรงนี้ แล้วให้ useEffect ตัวที่ 2 ทำงานแทน เพื่อป้องกันปัญหา DOM ไม่พร้อม
+        } else {
+          // เคลียร์แผนที่ถ้าไม่พบข้อมูล
+          if (mapRef.current) mapRef.current.innerHTML = '';
         }
       }
     } catch (err: any) {
@@ -241,163 +244,201 @@ export default function App() {
 
   // หาก Login แล้ว ให้แสดงหน้าหลัก
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 md:p-8 font-sans text-slate-800 dark:text-slate-200 flex items-center justify-center animate-in fade-in duration-300 transition-colors">
-      <div className="max-w-md w-full mx-auto bg-white dark:bg-slate-900 rounded-2xl shadow-xl dark:shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden relative">
-        
-        {/* Header */}
-        <div className="bg-slate-900 dark:bg-slate-950 p-8 text-white text-center relative overflow-hidden border-b border-slate-800">
-          <div className="absolute top-4 right-4 flex items-center gap-2 z-20">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-800 dark:text-slate-200 transition-colors duration-300 flex flex-col">
+      
+      {/* Navbar */}
+      <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-inner">
+              <Car className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white leading-tight">ระบบตรวจสอบยานพาหนะ</h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Vehicle Tracking System</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
             <button 
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              className="p-2 bg-white/10 hover:bg-white/20 rounded-lg backdrop-blur-sm transition-colors text-slate-300 hover:text-white flex items-center justify-center"
+              onClick={() => setIsDarkMode(!isDarkMode)} 
+              className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
               title={isDarkMode ? "เปลี่ยนเป็นโหมดสว่าง" : "เปลี่ยนเป็นโหมดมืด"}
             >
-              {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
+            <div className="w-px h-6 bg-slate-200 dark:bg-slate-700"></div>
             <button 
-              onClick={handleLogout}
-              className="p-2 bg-white/10 hover:bg-white/20 rounded-lg backdrop-blur-sm transition-colors text-slate-300 hover:text-white flex items-center gap-2 text-sm font-medium"
+              onClick={handleLogout} 
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 rounded-lg transition-colors"
               title="ออกจากระบบ"
             >
               <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">ออก</span>
+              <span className="hidden sm:inline">ออกจากระบบ</span>
             </button>
           </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
-          <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white to-transparent"></div>
-          <div className="relative z-10 flex flex-col items-center mt-2">
-            <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center mb-4 backdrop-blur-sm border border-white/20">
-              <Car className="w-7 h-7 text-white" />
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight">ระบบตรวจสอบยานพาหนะ</h1>
-            <p className="text-slate-400 text-sm mt-2 font-medium">ตรวจสอบประวัติการผ่านด่านแบบเรียลไทม์</p>
-          </div>
-        </div>
-
-        {/* Form */}
-        <div className="p-6 md:p-8">
-          <form onSubmit={handleCheck} className="space-y-5">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="platePrefix" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wide">
-                  หมวดอักษร
-                </label>
-                <input
-                  type="text"
-                  id="platePrefix"
-                  value={platePrefix}
-                  onChange={(e) => setPlatePrefix(e.target.value)}
-                  placeholder="เช่น 1กท, กข"
-                  className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all font-medium text-lg text-center text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
-                />
+          {/* Left Column: Form & Status */}
+          <div className="lg:col-span-4 space-y-6">
+            
+            {/* Form Card */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+              <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+                <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800 dark:text-slate-200">
+                  <Search className="w-5 h-5 text-indigo-500" />
+                  ค้นหาข้อมูลรถ
+                </h2>
               </div>
-              <div>
-                <label htmlFor="plateNumber" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wide">
-                  หมายเลข
-                </label>
-                <input
-                  type="text"
-                  id="plateNumber"
-                  value={plateNumber}
-                  onChange={(e) => setPlateNumber(e.target.value)}
-                  placeholder="เช่น 1234"
-                  maxLength={4}
-                  className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all font-medium text-lg text-center text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="plateProvince" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wide">
-                จังหวัด
-              </label>
-              <select
-                id="plateProvince"
-                value={plateProvince}
-                onChange={(e) => setPlateProvince(e.target.value)}
-                className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all font-medium text-lg text-slate-900 dark:text-white"
-              >
-                {PROVINCES.map(province => (
-                  <option key={province} value={province}>{province}</option>
-                ))}
-              </select>
-            </div>
-
-            {error && (
-              <div className="flex items-center gap-3 text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/20 p-4 rounded-xl border border-red-100 dark:border-red-900/30">
-                <AlertCircle className="w-5 h-5 shrink-0" />
-                <span className="font-medium">{error}</span>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white font-semibold py-4 rounded-xl transition-all disabled:opacity-70 flex justify-center items-center gap-2 shadow-md hover:shadow-lg"
-            >
-              {loading ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>กำลังตรวจสอบ...</span>
-                </>
-              ) : (
-                <span>ตรวจสอบข้อมูล</span>
-              )}
-            </button>
-          </form>
-        </div>
-
-        {/* Results */}
-        {result && (
-          <div className="border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 p-6 md:p-8">
-            {result.found ? (
-              <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="flex items-start gap-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/30 p-5 rounded-2xl text-red-800 dark:text-red-300 shadow-sm">
-                  <div className="bg-red-100 dark:bg-red-900/50 p-2 rounded-full shrink-0">
-                    <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
+              <div className="p-6">
+                <form onSubmit={handleCheck} className="space-y-5">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="platePrefix" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wide">
+                        หมวดอักษร
+                      </label>
+                      <input
+                        type="text"
+                        id="platePrefix"
+                        value={platePrefix}
+                        onChange={(e) => setPlatePrefix(e.target.value)}
+                        placeholder="เช่น 1กท, กข"
+                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all font-medium text-center text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="plateNumber" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wide">
+                        หมายเลข
+                      </label>
+                      <input
+                        type="text"
+                        id="plateNumber"
+                        value={plateNumber}
+                        onChange={(e) => setPlateNumber(e.target.value)}
+                        placeholder="เช่น 1234"
+                        maxLength={4}
+                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all font-medium text-center text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
+                      />
+                    </div>
                   </div>
+
                   <div>
-                    <h3 className="font-bold text-lg">แจ้งเตือน! พบข้อมูล</h3>
-                    <p className="text-sm mt-1 text-red-700/80 dark:text-red-300/80 font-medium">{result.message || 'เคยผ่านด่าน A'}</p>
+                    <label htmlFor="plateProvince" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wide">
+                      จังหวัด
+                    </label>
+                    <select
+                      id="plateProvince"
+                      value={plateProvince}
+                      onChange={(e) => setPlateProvince(e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-indigo-500 dark:focus:border-indigo-400 transition-all font-medium text-slate-900 dark:text-white"
+                    >
+                      {PROVINCES.map(province => (
+                        <option key={province} value={province}>{province}</option>
+                      ))}
+                    </select>
                   </div>
-                </div>
 
-                {/* Map Container */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
-                    <MapPin className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-                    <span>ตำแหน่งที่พบ (Sphere Map)</span>
-                  </div>
-                  <div className="w-full h-64 bg-slate-200 dark:bg-slate-800 rounded-2xl border border-slate-300 dark:border-slate-700 overflow-hidden relative shadow-inner">
-                    {/* Placeholder (อยู่ด้านหลังแผนที่เสมอ) */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 text-sm p-6 text-center bg-slate-100 dark:bg-slate-800 z-0">
-                      <div className="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center mb-3">
-                        <MapPin className="w-6 h-6 text-slate-400 dark:text-slate-500" />
-                      </div>
-                      <p className="font-medium text-slate-600 dark:text-slate-300">กำลังโหลดแผนที่...</p>
+                  {error && (
+                    <div className="flex items-center gap-3 text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/20 p-4 rounded-xl border border-red-100 dark:border-red-900/30">
+                      <AlertCircle className="w-5 h-5 shrink-0" />
+                      <span className="font-medium">{error}</span>
                     </div>
-                    
-                    {/* พื้นที่สำหรับวาดแผนที่ (แยกออกมาต่างหากเพื่อไม่ให้ React ชนกับ Sphere Map) */}
-                    <div className="absolute inset-0 z-10">
-                      <div id="sphere-map-container" ref={mapRef} style={{ width: '100%', height: '100%' }}></div>
-                    </div>
-                  </div>
-                </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white font-semibold py-3.5 rounded-xl transition-all disabled:opacity-70 flex justify-center items-center gap-2 shadow-md hover:shadow-lg"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>กำลังตรวจสอบ...</span>
+                      </>
+                    ) : (
+                      <span>ตรวจสอบข้อมูล</span>
+                    )}
+                  </button>
+                </form>
               </div>
-            ) : (
-              <div className="flex items-start gap-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-900/30 p-5 rounded-2xl text-emerald-800 dark:text-emerald-300 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="bg-emerald-100 dark:bg-emerald-900/50 p-2 rounded-full shrink-0">
-                  <CheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+            </div>
+
+            {/* Result Card */}
+            {result && (
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+                  <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800 dark:text-slate-200">
+                    {result.found ? <AlertCircle className="w-5 h-5 text-red-500" /> : <CheckCircle className="w-5 h-5 text-emerald-500" />}
+                    ผลการตรวจสอบ
+                  </h2>
                 </div>
-                <div>
-                  <h3 className="font-bold text-lg">ปลอดภัย</h3>
-                  <p className="text-sm mt-1 text-emerald-700/80 dark:text-emerald-300/80 font-medium">{result.message || 'ไม่พบประวัติการผ่านด่าน A'}</p>
+                <div className="p-6">
+                  {result.found ? (
+                    <div className="flex items-start gap-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/30 p-5 rounded-2xl text-red-800 dark:text-red-300 shadow-sm">
+                      <div className="bg-red-100 dark:bg-red-900/50 p-2 rounded-full shrink-0">
+                        <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg">แจ้งเตือน! พบข้อมูล</h3>
+                        <p className="text-sm mt-1 text-red-700/80 dark:text-red-300/80 font-medium">{result.message || 'เคยผ่านด่าน A'}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-900/30 p-5 rounded-2xl text-emerald-800 dark:text-emerald-300 shadow-sm">
+                      <div className="bg-emerald-100 dark:bg-emerald-900/50 p-2 rounded-full shrink-0">
+                        <CheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg">ปลอดภัย</h3>
+                        <p className="text-sm mt-1 text-emerald-700/80 dark:text-emerald-300/80 font-medium">{result.message || 'ไม่พบประวัติการผ่านด่าน A'}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
           </div>
-        )}
-      </div>
+
+          {/* Right Column: Map */}
+          <div className="lg:col-span-8">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden h-[500px] lg:h-[calc(100vh-10rem)] min-h-[500px] flex flex-col relative">
+              <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between z-20">
+                <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800 dark:text-slate-200">
+                  <MapPin className="w-5 h-5 text-indigo-500" />
+                  แผนที่เส้นทาง (Sphere Map)
+                </h2>
+                {result?.found && (
+                  <span className="px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs font-bold rounded-full animate-pulse flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                    Live Tracking
+                  </span>
+                )}
+              </div>
+              
+              <div className="flex-1 relative bg-slate-100 dark:bg-slate-800/50">
+                {/* Placeholder (อยู่ด้านหลังแผนที่เสมอ) */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 text-sm p-6 text-center z-0">
+                  <div className="w-16 h-16 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center mb-4">
+                    <MapPin className="w-8 h-8 text-slate-400 dark:text-slate-500" />
+                  </div>
+                  <p className="font-medium text-slate-600 dark:text-slate-300 text-base">รอการค้นหาข้อมูลเพื่อแสดงแผนที่...</p>
+                  <p className="text-slate-400 dark:text-slate-500 mt-2">กรุณากรอกป้ายทะเบียนทางด้านซ้าย</p>
+                </div>
+                
+                {/* พื้นที่สำหรับวาดแผนที่ */}
+                <div className="absolute inset-0 z-10">
+                  <div id="sphere-map-container" ref={mapRef} style={{ width: '100%', height: '100%' }}></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
 
       {/* Popup Alert Modal */}
       {showPopup && (
