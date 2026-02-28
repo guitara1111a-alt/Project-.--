@@ -18,7 +18,13 @@ export default function App() {
   const [plateNumber, setPlateNumber] = useState('');
   const [plateProvince, setPlateProvince] = useState('กรุงเทพมหานคร');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ found: boolean; lat?: number; lng?: number; message?: string } | null>(null);
+  const [result, setResult] = useState<{ 
+    found: boolean; 
+    lat?: number; 
+    lng?: number; 
+    locations?: { lat: number; lng: number; name?: string }[];
+    message?: string 
+  } | null>(null);
   const [error, setError] = useState('');
   const [showPopup, setShowPopup] = useState(false);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
@@ -56,8 +62,12 @@ export default function App() {
 
   // 2. useEffect สำหรับสร้างแผนที่ "หลังจาก" ที่หน้าจอวาดกล่องผลลัพธ์เสร็จแล้ว
   useEffect(() => {
-    if (isMapLoaded && result && result.found && result.lat !== undefined && result.lng !== undefined) {
-      initMap(result.lat, result.lng);
+    if (isMapLoaded && result && result.found) {
+      if (result.locations && result.locations.length > 0) {
+        initMap(result.locations);
+      } else if (result.lat !== undefined && result.lng !== undefined) {
+        initMap([{ lat: result.lat, lng: result.lng, name: 'จุดที่พบยานพาหนะ' }]);
+      }
     }
   }, [result, isMapLoaded]);
 
@@ -90,9 +100,12 @@ export default function App() {
         if (isFound) {
           const mockData = {
             found: true,
-            lat: 13.7563, 
-            lng: 100.5018,
-            message: 'เคยผ่านด่าน A'
+            locations: [
+              { lat: 13.7563, lng: 100.5018, name: 'ด่าน A (จุดเริ่มต้น)' },
+              { lat: 13.7650, lng: 100.5300, name: 'ด่าน B (จุดผ่าน)' },
+              { lat: 13.7400, lng: 100.5500, name: 'ด่าน C (จุดล่าสุด)' }
+            ],
+            message: 'เคยผ่านด่าน A, B, C'
           };
           setResult(mockData);
           setShowPopup(true);
@@ -107,10 +120,16 @@ export default function App() {
         const apiResult = await response.json();
         
         // แปลงข้อมูลจาก GAS ให้ตรงกับรูปแบบที่แอปหน้าเว็บเข้าใจ
+        // รองรับทั้งแบบจุดเดียว (lat, lon) และแบบหลายจุด (locations: [{lat, lon, name}])
         const formattedData = {
           found: apiResult.status === 'success',
           lat: apiResult.data ? parseFloat(apiResult.data.lat) : undefined,
           lng: apiResult.data ? parseFloat(apiResult.data.lon) : undefined, 
+          locations: apiResult.data && apiResult.data.locations ? apiResult.data.locations.map((loc: any) => ({
+            lat: parseFloat(loc.lat),
+            lng: parseFloat(loc.lon || loc.lng),
+            name: loc.name
+          })) : undefined,
           message: apiResult.message
         };
         
@@ -129,7 +148,7 @@ export default function App() {
   };
 
   // ฟังก์ชันสำหรับสร้างและแสดงแผนที่
-  const initMap = (lat: number, lng: number) => {
+  const initMap = (locations: { lat: number; lng: number; name?: string }[]) => {
     if (typeof window !== 'undefined' && (window as any).sphere) {
       // ใช้ setTimeout เพื่อหน่วงเวลาให้ HTML Render กล่องแผนที่เสร็จสมบูรณ์ 100%
       setTimeout(() => {
@@ -144,18 +163,40 @@ export default function App() {
 
           // ต้องรอให้แผนที่ Ready ก่อนถึงจะสั่ง location, zoom และปักหมุดได้
           map.Event.bind((window as any).sphere.EventName.Ready, () => {
-            // ใช้ map.location() และ map.zoom() ตามที่เคยใช้งานได้
-            map.location({ lon: lng, lat: lat });
-            map.zoom(14);
-
-            // สร้าง Marker ปักหมุด
-            const marker = new (window as any).sphere.Marker(
-              { lon: lng, lat: lat }, 
-              { title: 'จุดที่พบยานพาหนะ', detail: `พิกัด: ${lat}, ${lng}` }
-            );
             
-            // เพิ่มหมุดลงในแผนที่ด้วย Overlays.add
-            map.Overlays.add(marker);
+            if (locations.length === 1) {
+              // กรณีมีจุดเดียว ให้ปักหมุดปกติ
+              const loc = locations[0];
+              map.location({ lon: loc.lng, lat: loc.lat });
+              map.zoom(14);
+
+              const marker = new (window as any).sphere.Marker(
+                { lon: loc.lng, lat: loc.lat }, 
+                { title: loc.name || 'จุดที่พบยานพาหนะ', detail: `พิกัด: ${loc.lat}, ${loc.lng}` }
+              );
+              map.Overlays.add(marker);
+            } else if (locations.length > 1) {
+              // กรณีมีหลายจุด ให้วาดเส้นทาง (Routing)
+              
+              // ตั้งศูนย์กลางแผนที่ไปที่จุดแรก
+              map.location({ lon: locations[0].lng, lat: locations[0].lat });
+              map.zoom(12);
+
+              // เพิ่มจุดทั้งหมดลงในเส้นทาง
+              locations.forEach((loc, index) => {
+                map.Route.add({ lat: loc.lat, lon: loc.lng });
+                
+                // ปักหมุดแต่ละจุดด้วย เพื่อให้เห็นชัดเจน
+                const marker = new (window as any).sphere.Marker(
+                  { lon: loc.lng, lat: loc.lat }, 
+                  { title: loc.name || `จุดที่ ${index + 1}`, detail: `พิกัด: ${loc.lat}, ${loc.lng}` }
+                );
+                map.Overlays.add(marker);
+              });
+
+              // สั่งค้นหาและวาดเส้นทาง
+              map.Route.search();
+            }
           });
 
           mapInstanceRef.current = map;
