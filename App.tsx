@@ -32,7 +32,7 @@ export default function App() {
     if (!document.getElementById(scriptId)) {
       const script = document.createElement('script');
       script.id = scriptId;
-      script.src = `https://api.sphere.gistda.or.th/map/js/sphere.js?key=${SPHERE_API_KEY}`;
+      script.src = `https://api.sphere.gistda.or.th/map/?key=${SPHERE_API_KEY}`;
       script.async = true;
       script.onload = () => {
         console.log('Sphere Map Script Loaded');
@@ -59,6 +59,7 @@ export default function App() {
     setLoading(true);
     setResult(null);
     setShowPopup(false);
+    mapInstanceRef.current = null; // รีเซ็ต instance แผนที่เมื่อค้นหาใหม่
 
     try {
       if (GAS_URL === 'ใส่ URL ของคุณที่นี่') {
@@ -115,18 +116,25 @@ export default function App() {
           // ล้างแผนที่เก่าถ้ามี
           mapRef.current.innerHTML = '';
           
-          // สร้างแผนที่ใหม่
+          // สร้างแผนที่ใหม่ตาม Document
           const map = new (window as any).sphere.Map({
-            placeholder: mapRef.current,
-            center: { lon: lng, lat: lat },
-            zoom: 14
+            placeholder: mapRef.current
           });
 
-          // สร้าง Marker ปักหมุด
-          new (window as any).sphere.Marker({ lon: lng, lat: lat }, {
-            title: 'จุดที่พบยานพาหนะ',
-            detail: `พิกัด: ${lat}, ${lng}`
-          }).addTo(map);
+          // ต้องรอให้แผนที่ Ready ก่อนถึงจะสั่ง location, zoom และปักหมุดได้
+          map.Event.bind((window as any).sphere.EventName.Ready, () => {
+            map.location({ lon: lng, lat: lat });
+            map.zoom(14);
+
+            // สร้าง Marker ปักหมุด
+            const marker = new (window as any).sphere.Marker(
+              { lon: lng, lat: lat }, 
+              { title: 'จุดที่พบยานพาหนะ', detail: `พิกัด: ${lat}, ${lng}` }
+            );
+            
+            // เพิ่มหมุดลงในแผนที่ด้วย Overlays.add
+            map.Overlays.add(marker);
+          });
 
           mapInstanceRef.current = map;
         } else {
