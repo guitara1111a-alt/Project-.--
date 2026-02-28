@@ -10,7 +10,8 @@ const SPHERE_API_KEY = 'EDB31CA9C8A944F59D3021B1F0B565C0';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [plate, setPlate] = useState('');
+  const [platePrefix, setPlatePrefix] = useState('');
+  const [plateNumber, setPlateNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ found: boolean; lat?: number; lng?: number; message?: string } | null>(null);
   const [error, setError] = useState('');
@@ -57,10 +58,19 @@ export default function App() {
 
   const handleCheck = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!plate.trim()) {
-      setError('กรุณากรอกป้ายทะเบียนรถ');
+    if (!platePrefix.trim() || !plateNumber.trim()) {
+      setError('กรุณากรอกข้อมูลป้ายทะเบียนให้ครบถ้วน');
       return;
     }
+
+    // ลบช่องว่างและขีดออกทั้งหมด เพื่อให้รูปแบบเป็นมาตรฐานเดียวกัน
+    const cleanPrefix = platePrefix.replace(/[\s-]/g, '');
+    const cleanNumber = plateNumber.replace(/[\s-]/g, '');
+    
+    // รวมเป็นข้อความเดียว (เช่น "1กท1234" หรือ "1กท 1234")
+    // ในที่นี้เราจะรวมแบบมีเว้นวรรค 1 เคาะตรงกลาง ซึ่งเป็นรูปแบบที่นิยมที่สุด
+    // หาก Google Sheet ของคุณเก็บแบบติดกัน ให้เปลี่ยนเป็น `${cleanPrefix}${cleanNumber}`
+    const combinedPlate = `${cleanPrefix} ${cleanNumber}`;
 
     setError('');
     setLoading(true);
@@ -86,8 +96,8 @@ export default function App() {
           setResult({ found: false, message: 'ไม่พบประวัติการผ่านด่าน A' });
         }
       } else {
-        // การเรียก API จริง
-        const response = await fetch(`${GAS_URL}?plate=${encodeURIComponent(plate)}`);
+        // การเรียก API จริง (ส่งข้อมูลที่จัดรูปแบบแล้วไป)
+        const response = await fetch(`${GAS_URL}?plate=${encodeURIComponent(combinedPlate)}`);
         if (!response.ok) throw new Error('เกิดข้อผิดพลาดในการเชื่อมต่อ API');
         
         const apiResult = await response.json();
@@ -156,7 +166,8 @@ export default function App() {
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    setPlate('');
+    setPlatePrefix('');
+    setPlateNumber('');
     setResult(null);
     setError('');
   };
@@ -195,22 +206,33 @@ export default function App() {
         {/* Form */}
         <div className="p-6 md:p-8">
           <form onSubmit={handleCheck} className="space-y-5">
-            <div>
-              <label htmlFor="plate" className="block text-sm font-semibold text-slate-700 mb-2 uppercase tracking-wide">
-                ป้ายทะเบียนรถ
-              </label>
-              <div className="relative">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="platePrefix" className="block text-sm font-semibold text-slate-700 mb-2 uppercase tracking-wide">
+                  หมวดอักษร
+                </label>
                 <input
                   type="text"
-                  id="plate"
-                  value={plate}
-                  onChange={(e) => setPlate(e.target.value)}
-                  placeholder="เช่น กท 1234"
-                  className="w-full pl-4 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all font-medium text-lg"
+                  id="platePrefix"
+                  value={platePrefix}
+                  onChange={(e) => setPlatePrefix(e.target.value)}
+                  placeholder="เช่น 1กท, กข"
+                  className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all font-medium text-lg text-center"
                 />
-                <div className="absolute right-3 top-3.5 w-8 h-8 bg-slate-200 rounded-lg flex items-center justify-center">
-                  <Search className="text-slate-500 w-4 h-4" />
-                </div>
+              </div>
+              <div>
+                <label htmlFor="plateNumber" className="block text-sm font-semibold text-slate-700 mb-2 uppercase tracking-wide">
+                  หมายเลข
+                </label>
+                <input
+                  type="text"
+                  id="plateNumber"
+                  value={plateNumber}
+                  onChange={(e) => setPlateNumber(e.target.value)}
+                  placeholder="เช่น 1234"
+                  maxLength={4}
+                  className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all font-medium text-lg text-center"
+                />
               </div>
             </div>
 
@@ -301,7 +323,7 @@ export default function App() {
             <div className="text-center text-slate-600 mb-8 space-y-2">
               <p>ตรวจพบรถทะเบียน</p>
               <div className="inline-block px-4 py-2 bg-slate-100 rounded-lg font-mono font-bold text-lg text-slate-900 border border-slate-200">
-                {plate}
+                {`${platePrefix.replace(/[\s-]/g, '')} ${plateNumber.replace(/[\s-]/g, '')}`}
               </div>
               <p className="font-medium text-red-600 mt-2">{result?.message || 'เคยผ่านด่าน A'}</p>
             </div>
