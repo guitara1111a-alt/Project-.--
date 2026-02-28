@@ -5,8 +5,8 @@ import Login from './components/Login';
 // ==========================================
 // การตั้งค่า (Configuration)
 // ==========================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwd0Wt66cnmx2L0R6Qh7frLYbR5ujY7Hi5h3gJkS8HzrsKFSpI8GB4Y9eb4aHFGsBE8/exec'; // URL ของ Google Apps Script Web App
-const SPHERE_API_KEY = 'EDB31CA9C8A944F59D3021B1F0B565C0'; // API Key สำหรับ Sphere Map (GISTDA)
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwd0Wt66cnmx2L0R6Qh7frLYbR5ujY7Hi5h3gJkS8HzrsKFSpI8GB4Y9eb4aHFGsBE8/exec';
+const SPHERE_API_KEY = 'EDB31CA9C8A944F59D3021B1F0B565C0';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -19,7 +19,7 @@ export default function App() {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
 
-  // โหลด Script ของ Sphere Map เมื่อ Component ถูก Mount (และต้อง Login แล้ว)
+  // 1. โหลด Script ของ Sphere Map เมื่อ Component ถูก Mount (และต้อง Login แล้ว)
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -41,6 +41,13 @@ export default function App() {
     }
   }, [isAuthenticated]);
 
+  // 2. useEffect สำหรับสร้างแผนที่ "หลังจาก" ที่หน้าจอวาดกล่องผลลัพธ์เสร็จแล้ว
+  useEffect(() => {
+    if (result && result.found && result.lat !== undefined && result.lng !== undefined) {
+      initMap(result.lat, result.lng);
+    }
+  }, [result]);
+
   const handleCheck = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!plate.trim()) {
@@ -54,22 +61,19 @@ export default function App() {
     setShowPopup(false);
 
     try {
-      // จำลองการเรียก API ในกรณีที่ยังไม่ได้ใส่ URL จริง
       if (GAS_URL === 'ใส่ URL ของคุณที่นี่') {
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Mock delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // จำลองข้อมูลตอบกลับ (สุ่มเจอหรือไม่เจอ)
         const isFound = Math.random() > 0.5;
         if (isFound) {
           const mockData = {
             found: true,
-            lat: 13.7563, // พิกัดตัวอย่าง (กรุงเทพฯ)
+            lat: 13.7563, 
             lng: 100.5018,
             message: 'เคยผ่านด่าน A'
           };
           setResult(mockData);
-          setShowPopup(true); // แสดง Popup แจ้งเตือน
-          initMap(mockData.lat, mockData.lng);
+          setShowPopup(true);
         } else {
           setResult({ found: false, message: 'ไม่พบประวัติการผ่านด่าน A' });
         }
@@ -78,14 +82,21 @@ export default function App() {
         const response = await fetch(`${GAS_URL}?plate=${encodeURIComponent(plate)}`);
         if (!response.ok) throw new Error('เกิดข้อผิดพลาดในการเชื่อมต่อ API');
         
-        const data = await response.json();
-        setResult(data);
+        const apiResult = await response.json();
         
-        if (data.found) {
-          setShowPopup(true); // แสดง Popup แจ้งเตือนเมื่อเจอข้อมูล
-          if (data.lat && data.lng) {
-            initMap(data.lat, data.lng);
-          }
+        // แปลงข้อมูลจาก GAS ให้ตรงกับรูปแบบที่แอปหน้าเว็บเข้าใจ
+        const formattedData = {
+          found: apiResult.status === 'success',
+          lat: apiResult.data ? parseFloat(apiResult.data.lat) : undefined,
+          lng: apiResult.data ? parseFloat(apiResult.data.lon) : undefined, 
+          message: apiResult.message
+        };
+        
+        setResult(formattedData);
+        
+        if (formattedData.found) {
+          setShowPopup(true); 
+          // เราลบ initMap() ออกจากตรงนี้ แล้วให้ useEffect ตัวที่ 2 ทำงานแทน เพื่อป้องกันปัญหา DOM ไม่พร้อม
         }
       }
     } catch (err: any) {
@@ -97,8 +108,8 @@ export default function App() {
 
   // ฟังก์ชันสำหรับสร้างและแสดงแผนที่
   const initMap = (lat: number, lng: number) => {
-    // ตรวจสอบว่ามีไลบรารี sphere โหลดมาหรือยัง
     if (typeof window !== 'undefined' && (window as any).sphere) {
+      // ใช้ setTimeout เพื่อหน่วงเวลาให้ HTML Render กล่องแผนที่เสร็จสมบูรณ์ 100%
       setTimeout(() => {
         if (mapRef.current) {
           // ล้างแผนที่เก่าถ้ามี
@@ -118,8 +129,10 @@ export default function App() {
           }).addTo(map);
 
           mapInstanceRef.current = map;
+        } else {
+          console.error("หาพื้นที่แสดงแผนที่ไม่พบ (mapRef is null)");
         }
-      }, 100); // รอให้ DOM render เสร็จ
+      }, 300); // เพิ่มเวลาหน่วงเล็กน้อยเป็น 300ms เพื่อความชัวร์
     } else {
       console.warn('Sphere map library is not loaded yet.');
     }
@@ -235,12 +248,12 @@ export default function App() {
                     className="w-full h-64 bg-slate-200 rounded-2xl border border-slate-300 overflow-hidden relative shadow-inner"
                   >
                     {/* Placeholder when map is not loaded */}
-                    {(!mapInstanceRef.current && SPHERE_API_KEY === 'ใส่ API Key ที่นี่') && (
+                    {(!mapInstanceRef.current) && (
                       <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 text-sm p-6 text-center bg-slate-100">
                         <div className="w-12 h-12 bg-slate-200 rounded-full flex items-center justify-center mb-3">
                           <MapPin className="w-6 h-6 text-slate-400" />
                         </div>
-                        <p className="font-medium text-slate-600">กรุณาใส่ SPHERE_API_KEY ในโค้ด<br/>เพื่อแสดงแผนที่ GISTDA</p>
+                        <p className="font-medium text-slate-600">กำลังโหลดแผนที่...</p>
                       </div>
                     )}
                   </div>
